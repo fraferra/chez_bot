@@ -21,7 +21,7 @@
   </group>
   <group if="$(arg simulation)">
     <!-- Load nodelet manager for compatibility -->
-    <node pkg="nodelet" type="nodelet" ns="camera" name="camera_nodelet_manager" args="manager"/>
+    <node pkg="nodelet" type="nodelet" ns="camera" name="camera_nodelet_manager_3" args="manager"/>
 
     <include file="$(find turtlebot_follower)/launch/includes/velocity_smoother.launch.xml">
       <arg name="nodelet_manager"  value="camera/camera_nodelet_manager_4"/>

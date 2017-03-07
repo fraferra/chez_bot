@@ -40,6 +40,7 @@
 #include "turtlebot_follower/FollowerConfig.h"
 //#include <turtlesim/Velocity.h>
 #include "hog_haar_person_detection/Faces.h"
+#include "hog_haar_person_detection/BoundingBox.h"
 #include <depth_image_proc/depth_traits.h>
 
 
@@ -105,32 +106,32 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 {
 	float tmp_x = 0.0;
 	float tmp_y = 0.0;
-	int count = 0.0
-	ROS_INFO_THROTTLE(1, sizeof(facelist.faces)/sizeof(facelist.faces[0]));
-	if(sizeof(facelist.faces)/sizeof(facelist.faces[0]) != 0){ROS_INFO_THROTTLE(1, "FACE FOUND\n");}
+	float count = 0;
+	//ROS_INFO_THROTTLE(1, facelist);
+	
+	if(sizeof(facelist.faces) != 0)
+	{   ROS_INFO_THROTTLE(1, "FACE FOUND\n");
+	    //ROS_INFO_THROTTLE(1, "%d",sizeof(facelist.faces));
+	    //ROS_INFO_THROTTLE(1, "%f",sizeof(facelist.faces)/sizeof(facelist.faces[0]));
+	    x_face = facelist.faces[0].center.x;
+	    y_face = facelist.faces[0].center.y;
+	    face_found = true;
+	    //for(int i=0; sizeof(facelist.faces); i++){
+	    //		tmp_x += facelist.faces[i].x;
+	    //		tmp_y += facelist.faces[i].y;
+	    //		count += 1.0;
+	    //	}
+					
+	}
+	if(sizeof(facelist.faces) == 0){face_found = false;}
+	//x_face = tmp_x / count;
+	//y_face = tmp_y / count;
 	
 }
 
-void blobsCallBack (const cmvision::Blobs& blobsIn)
+/*void blobsCallBack (const cmvision::Blobs& blobsIn)
 {
-/************************************************************
-* These blobsIn.blobs[i].red, blobsIn.blobs[i].green, and blobsIn.blobs[i].blue values depend on the
-* 
-values those are provided in the colos.txt file.
-* For example, the color file is like:
-* 
-* [Colors]
-* (255, 0, 0) 0.000000 10 RED 
-* (255, 255, 0) 0.000000 10 YELLOW 
-* [Thresholds]
-* ( 127:187, 142:161, 175:197 )
-* ( 47:99, 96:118, 162:175 )
-* 
-* Now, if a red blob is found, then the blobsIn.blobs[i].red will be 255, and the others will be 0.
-* Similarly, for yellow blob, blobsIn.blobs[i].red and blobsIn.blobs[i].green will be 255, and 
-blobsIn.blobs[i].blue will be 0.
-************************
-************************************/
+
 x_yellow = 0;
 y_yellow = 0;
 int count = 0;
@@ -153,7 +154,7 @@ else{
 color_found = false;
 ROS_INFO_THROTTLE(1, "NO BLOBS FOUND:\n");
 }
-}
+}*/
 
 
   virtual void onInit()
@@ -175,7 +176,7 @@ ROS_INFO_THROTTLE(1, "NO BLOBS FOUND:\n");
     markerpub_ = private_nh.advertise<visualization_msgs::Marker>("marker",1);
     bboxpub_ = private_nh.advertise<visualization_msgs::Marker>("bbox",1);
     sub_= nh.subscribe<sensor_msgs::Image>("depth/image_rect", 1, &TurtlebotFollower::imagecb, this);
-    blobsSubscriber = nh.subscribe("/blobs", 100,  &TurtlebotFollower::blobsCallBack, this);
+    //blobsSubscriber = nh.subscribe("/blobs", 100,  &TurtlebotFollower::blobsCallBack, this);
     facesSubscriber = nh.subscribe("/person_detection/faces", 100,  &TurtlebotFollower::personDetectionCallBack, this);
     switch_srv_ = private_nh.advertiseService("change_state", &TurtlebotFollower::changeModeSrvCb, this);
 
