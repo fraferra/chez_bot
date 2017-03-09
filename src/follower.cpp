@@ -119,8 +119,11 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 	    //ROS_INFO_THROTTLE(1, "%f",sizeof(facelist.faces)/sizeof(facelist.faces[0]));
 	       x_face = facelist.faces[0].center.x;
 	       y_face = facelist.faces[0].center.y;
+	       y_yellow = ((facelist.faces[0].center.y - 320.0)/640.0 + y_yellow)/2.0;
+	       x_yellow = ((facelist.faces[0].center.x - 320.0)/640.0 + x_yellow)/2.0;
 	    //ROS_INFO_THROTTLE(1, "%f\n", x_face);
-	    //face_found = true;
+	       face_found = true;
+		color_found = true;
 	    int i = 0;
 	    /*while(!facelist.faces.empty()){
 
@@ -136,6 +139,7 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 	 }else{
 		ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
 		face_found = false;
+		color_found = false;
 	}
 					
 	//}
