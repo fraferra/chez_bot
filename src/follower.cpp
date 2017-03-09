@@ -108,26 +108,46 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 	float tmp_y = 0.0;
 	float count = 0;
 	//ROS_INFO_THROTTLE(1, facelist);
+	ROS_INFO_THROTTLE(1, "FACE CHECK\n");
+	//ROS_INFO_THROTTLE(1, "%f\n", facelist.faces[0].center.x);
 	
-	if(sizeof(facelist.faces) != 0)
-	{   ROS_INFO_THROTTLE(1, "FACE FOUND\n");
+	//if(sizeof(facelist.faces) != 0){ 
+          if(!facelist.faces.empty()){
+		ROS_INFO_THROTTLE(1, "FACE FOUND\n");
+		
 	    //ROS_INFO_THROTTLE(1, "%d",sizeof(facelist.faces));
 	    //ROS_INFO_THROTTLE(1, "%f",sizeof(facelist.faces)/sizeof(facelist.faces[0]));
-	    x_face = facelist.faces[0].center.x;
-	    y_face = facelist.faces[0].center.y;
-	    face_found = true;
-	    //for(int i=0; sizeof(facelist.faces); i++){
-	    //		tmp_x += facelist.faces[i].x;
-	    //		tmp_y += facelist.faces[i].y;
-	    //		count += 1.0;
-	    //	}
-					
+	       x_face = facelist.faces[0].center.x;
+	       y_face = facelist.faces[0].center.y;
+	    //ROS_INFO_THROTTLE(1, "%f\n", x_face);
+	    //face_found = true;
+	    int i = 0;
+	    /*while(!facelist.faces.empty()){
+
+			f = facelist.faces.front();
+			facelist.faces.pop_front();
+	    		tmp_x += f.center.x;
+	    		tmp_y += f.center.y;
+	    		count += 1.0;
+			i++;
+	     }
+	    x_face = tmp_x/count;
+	    y_face = tmp_x/count;*/
+	 }else{
+		ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
+		face_found = false;
 	}
-	if(sizeof(facelist.faces) == 0){face_found = false;}
+					
+	//}
+	//if(sizeof(facelist.faces) == 0){
+	//	ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
+	//	face_found = false;
+	//}
 	//x_face = tmp_x / count;
 	//y_face = tmp_y / count;
 	
 }
+
 
 /*void blobsCallBack (const cmvision::Blobs& blobsIn)
 {
