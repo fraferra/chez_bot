@@ -30,7 +30,11 @@
   </group>
 
   <param name="camera/rgb/image_color/compressed/jpeg_quality" value="22"/>
+ 
 
+  <param name="face_cascade_name" value="$(find hog_haar_person_detection)/config/haarcascade_frontalface_alt.xml" />
+  <param name="image_topic" value="/camera/rgb/image_raw" />
+  <node pkg="hog_haar_person_detection" type="hog_haar_person_detection" name="hog_haar_person_detection" output="screen"/>
   <!-- Make a slower camera feed available; only required if we use android client -->
   <node pkg="topic_tools" type="throttle" name="camera_throttle"
         args="messages camera/rgb/image_color/compressed 5"/>
@@ -53,6 +57,7 @@
     <param name="max_z" value="0.6" />
     <param name="goal_z" value="1.0" />
   </node>
+  <node pkg="keyboard" name="keyboard" type="keyboard"/>
   <!-- Launch the script which will toggle turtlebot following on and off based on a joystick button. default: on -->
   <node name="switch" pkg="turtlebot_follower" type="switch.py"/>
 
