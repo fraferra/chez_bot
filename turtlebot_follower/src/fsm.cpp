@@ -83,13 +83,18 @@ private:
   double z_scale_; /**< The scaling factor for translational robot speed */
   double x_scale_; /**< The scaling factor for rotational robot speed */
   bool   enabled_; /**< Enable/disable following; just prevents motor commands */
-  bool color_found;
-  bool face_found;
+
   float x_face;
   float y_face;
-float x_yellow;
-float y_yellow;
-  //color_found = false;
+  float x_yellow;
+  float y_yellow;
+  // STATES
+  bool face_found;
+  bool close_to_human;
+  bool obstacle_detected;
+  bool has_candies;
+  bool follower_mode_on;
+  //face_found = false;
   // Service for start/stop following
   ros::ServiceServer switch_srv_;
 
@@ -101,6 +106,8 @@ float y_yellow;
    * OnInit method from node handle. Sets up the parameters
    * and topics.
    */
+
+
 
 void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 {
@@ -123,62 +130,18 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 	       x_yellow = ((facelist.faces[0].center.x - 320.0)/640.0 + x_yellow)/2.0;
 	    //ROS_INFO_THROTTLE(1, "%f\n", x_face);
 	       face_found = true;
-		color_found = true;
 	    int i = 0;
-	    /*while(!facelist.faces.empty()){
 
-			f = facelist.faces.front();
-			facelist.faces.pop_front();
-	    		tmp_x += f.center.x;
-	    		tmp_y += f.center.y;
-	    		count += 1.0;
-			i++;
-	     }
-	    x_face = tmp_x/count;
-	    y_face = tmp_x/count;*/
 	 }else{
 		ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
 		face_found = false;
-		color_found = false;
 	}
 					
-	//}
-	//if(sizeof(facelist.faces) == 0){
-	//	ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
-	//	face_found = false;
-	//}
-	//x_face = tmp_x / count;
-	//y_face = tmp_y / count;
+
 	
 }
 
 
-/*void blobsCallBack (const cmvision::Blobs& blobsIn)
-{
-
-x_yellow = 0;
-y_yellow = 0;
-int count = 0;
-for (int i = 0; i < blobsIn.blob_count; i++)
-{
-if (blobsIn.blobs[i].red == 201 && blobsIn.blobs[i].green == 148 && blobsIn.blobs[i].blue == 22)
-{
-	x_yellow = x_yellow + blobsIn.blobs[i].x;
-	y_yellow = y_yellow + blobsIn.blobs[i].y;
-	count = count + 1;
-}
-}
-if(count!= 0){
-	color_found = true;
-	x_yellow = (x_yellow/count - 320)/640;
-	y_yellow = (y_yellow/count-320)/640;
-ROS_INFO_THROTTLE(1, "%f %f \n",x_yellow,y_yellow);
-}
-else{
-color_found = false;
-ROS_INFO_THROTTLE(1, "NO BLOBS FOUND:\n");
-}
-}*/
 
 
   virtual void onInit()
@@ -279,7 +242,7 @@ ROS_INFO_THROTTLE(1, "NO BLOBS FOUND:\n");
 
     //If there are points, find the centroid and calculate the command goal.
     //If there are no points, simply publish a stop goal.
-    if (n < 4000 and color_found)
+    if (n < 4000 and face_found)
     {
       x = x_yellow;
       y = y_yellow;
@@ -328,7 +291,7 @@ cmdpub_.publish(cmd);
 }*/
 ROS_INFO_THROTTLE(1, "obstacle bypassed");
 }
-else if(!color_found){
+else if(!face_found){
 ROS_INFO_THROTTLE(1, "no color blob found, searching...");
 	/*geometry_msgs::TwistPtr cmd(new geometry_msgs::Twist());
 	    cmd->angular.z = 1;
