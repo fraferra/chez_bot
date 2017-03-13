@@ -42,7 +42,7 @@
 #include "hog_haar_person_detection/Faces.h"
 #include "hog_haar_person_detection/BoundingBox.h"
 #include <depth_image_proc/depth_traits.h>
-
+#include "keyboard/Key.h"
 
 namespace turtlebot_follower
 {
@@ -83,18 +83,19 @@ private:
   double z_scale_; /**< The scaling factor for translational robot speed */
   double x_scale_; /**< The scaling factor for rotational robot speed */
   bool   enabled_; /**< Enable/disable following; just prevents motor commands */
+  
 
+  bool face_found;
   float x_face;
   float y_face;
-  float x_yellow;
-  float y_yellow;
-  // STATES
-  bool face_found;
-  bool close_to_human;
-  bool obstacle_detected;
-  bool has_candies;
-  bool follower_mode_on;
-  //face_found = false;
+
+
+  int STATE;
+
+  float obstacle_detected;
+  float is_close_to_human;
+  float has_candies;
+  //color_found = false;
   // Service for start/stop following
   ros::ServiceServer switch_srv_;
 
@@ -107,92 +108,76 @@ private:
    * and topics.
    */
 
+ // UPDATE STATE 
+void updateState(){
+  if(face_found == false && obstacle_detected == false && is_close_to_human==false){STATE = 0;}
+
+  else if(obstacle_detected == true && is_close_to_human==false){STATE = 1;}
+
+  else if(face_found == true && obstacle_detected == false && is_close_to_human==false){STATE = 2;}
+
+  else if(face_found == true && is_close_to_human==true){
+    STATE = 3;
+    TurtlebotFollower::engageWithHuman();
+  }
+
+  else{STATE=0;}
+
+  ROS_INFO_THROTTLE(1, "STATE IS: %d\n", STATE);
 
 
-void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
-{
-	float tmp_x = 0.0;
-	float tmp_y = 0.0;
-	float count = 0;
-	//ROS_INFO_THROTTLE(1, facelist);
-	ROS_INFO_THROTTLE(1, "FACE CHECK\n");
-	//ROS_INFO_THROTTLE(1, "%f\n", facelist.faces[0].center.x);
-	
-	//if(sizeof(facelist.faces) != 0){ 
-          if(!facelist.faces.empty()){
-		ROS_INFO_THROTTLE(1, "FACE FOUND\n");
-		
-	    //ROS_INFO_THROTTLE(1, "%d",sizeof(facelist.faces));
-	    //ROS_INFO_THROTTLE(1, "%f",sizeof(facelist.faces)/sizeof(facelist.faces[0]));
-	       x_face = facelist.faces[0].center.x;
-	       y_face = facelist.faces[0].center.y;
-	       y_yellow = ((facelist.faces[0].center.y - 320.0)/640.0 + y_yellow)/2.0;
-	       x_yellow = ((facelist.faces[0].center.x - 320.0)/640.0 + x_yellow)/2.0;
-	    //ROS_INFO_THROTTLE(1, "%f\n", x_face);
-	       face_found = true;
-	    int i = 0;
-
-	 }else{
-		ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
-		face_found = false;
-	}
-					
-
-	
 }
 
 
+void engageWithHuman(){
+  system("espeak -v en 'HI, I AM CHEZ BOT. HOW ARE YOU?'");
+  system("espeak -v en 'WOULD YOU LIKE A CANDY? IF SO PRESS MY SPACEBAR'");
+};
 
 
-  virtual void onInit()
-  {
-    ros::NodeHandle& nh = getNodeHandle();
-    ros::NodeHandle& private_nh = getPrivateNodeHandle();
+void avoidObstacle(){};
 
-    private_nh.getParam("min_y", min_y_);
-    private_nh.getParam("max_y", max_y_);
-    private_nh.getParam("min_x", min_x_);
-    private_nh.getParam("max_x", max_x_);
-    private_nh.getParam("max_z", max_z_);
-    private_nh.getParam("goal_z", goal_z_);
-    private_nh.getParam("z_scale", z_scale_);
-    private_nh.getParam("x_scale", x_scale_);
-    private_nh.getParam("enabled", enabled_);
+void moveToHuman(){};
 
-    cmdpub_ = private_nh.advertise<geometry_msgs::Twist> ("cmd_vel", 1);
-    markerpub_ = private_nh.advertise<visualization_msgs::Marker>("marker",1);
-    bboxpub_ = private_nh.advertise<visualization_msgs::Marker>("bbox",1);
-    sub_= nh.subscribe<sensor_msgs::Image>("depth/image_rect", 1, &TurtlebotFollower::imagecb, this);
-    //blobsSubscriber = nh.subscribe("/blobs", 100,  &TurtlebotFollower::blobsCallBack, this);
-    facesSubscriber = nh.subscribe("/person_detection/faces", 100,  &TurtlebotFollower::personDetectionCallBack, this);
-    switch_srv_ = private_nh.advertiseService("change_state", &TurtlebotFollower::changeModeSrvCb, this);
+// UPDATE FACE DETECTION
+void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
+{
+  float tmp_x = 0.0;
+  float tmp_y = 0.0;
+  float count = 0;
+  //ROS_INFO_THROTTLE(1, facelist);
+  //ROS_INFO_THROTTLE(1, "FACE CHECK\n");
+  //ROS_INFO_THROTTLE(1, "%f\n", facelist.faces[0].center.x);
+  
+  //if(sizeof(facelist.faces) != 0){ 
+          if(!facelist.faces.empty()){
+    ROS_INFO_THROTTLE(1, "FACE FOUND\n");
+    
 
-    config_srv_ = new dynamic_reconfigure::Server<turtlebot_follower::FollowerConfig>(private_nh);
-    dynamic_reconfigure::Server<turtlebot_follower::FollowerConfig>::CallbackType f =
-        boost::bind(&TurtlebotFollower::reconfigure, this, _1, _2);
-    config_srv_->setCallback(f);
+         y_face = ((facelist.faces[0].center.y - 320.0)/640.0 + y_face)/2.0;
+         x_face = ((facelist.faces[0].center.x - 320.0)/640.0 + x_face)/2.0;
+      //ROS_INFO_THROTTLE(1, "%f\n", x_face);
+         face_found = true;
+
+         if(facelist.faces[0].width >100){
+          is_close_to_human = true;
+         }else{is_close_to_human = false;}
+      int i = 0;
+
+   }else{
+    ROS_INFO_THROTTLE(1, "FACE ->NOT<- FOUND\n");
+    face_found = false;
+    is_close_to_human=false;
   }
+          
+TurtlebotFollower::updateState();
+  
+}
 
-  void reconfigure(turtlebot_follower::FollowerConfig &config, uint32_t level)
-  {
-    min_y_ = config.min_y;
-    max_y_ = config.max_y;
-    min_x_ = config.min_x;
-    max_x_ = config.max_x;
-    max_z_ = config.max_z;
-    goal_z_ = config.goal_z;
-    z_scale_ = config.z_scale;
-    x_scale_ = config.x_scale;
-  }
 
-  /*!
-   * @brief Callback for point clouds.
-   * Callback for depth images. It finds the centroid
-   * of the points in a box in the center of the image. 
-   * Publishes cmd_vel messages with the goal from the image.
-   * @param cloud The point cloud message.
-   */
-  void imagecb(const sensor_msgs::ImageConstPtr& depth_msg)
+// UPDATE OBSTACLE DETECTION
+
+  void updateObstacle(const sensor_msgs::ImageConstPtr& depth_msg)
   {
 
     // Precompute the sin function for each row and column
@@ -239,158 +224,71 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
        }
      }
     }
-
-    //If there are points, find the centroid and calculate the command goal.
-    //If there are no points, simply publish a stop goal.
-    if (n < 4000 and face_found)
-    {
-      x = x_yellow;
-      y = y_yellow;
-      /*if(z > max_z_){
-        ROS_INFO_THROTTLE(1, "Centroid too far away %f, stopping the robot\n", z);
-        if (enabled_)
-        {
-          cmdpub_.publish(geometry_msgs::TwistPtr(new geometry_msgs::Twist()));
-        }
-        return;
-      }*/
-
-      
-      publishMarker(x, y, z);
-
-      if (enabled_)
-      {
-ROS_INFO_THROTTLE(1, "BLOB detected at Centroid at %f %f", x, y);
-        geometry_msgs::TwistPtr cmd(new geometry_msgs::Twist());
-        cmd->linear.x = 0.05;//(z - goal_z_) * z_scale_;
-	cmd->angular.z = -x * z_scale_;
-        cmdpub_.publish(cmd);
-      }
-    }
-else if(n > 4000){
-ROS_INFO_THROTTLE(1, "obstacle detected");
-//for(int i=0;i<5;i++){
-geometry_msgs::TwistPtr cmd1(new geometry_msgs::Twist());
-//cmd1->angular.z = 1;
-//cmdpub_.publish(cmd1);
-//}
-//for(int i=0;i<5;i++){
-//geometry_msgs::TwistPtr cmd(new geometry_msgs::Twist());
-geometry_msgs::TwistPtr cmd2(new geometry_msgs::Twist());
-cmd2->linear.x = -2.5;
-cmdpub_.publish(cmd2);
-
-geometry_msgs::TwistPtr cmd3(new geometry_msgs::Twist());
-//cmd3->angular.z = -1;
-//cmdpub_.publish(cmd3);
-//}
-/*for(int i=0;i<5;i++){
-geometry_msgs::TwistPtr cmd(new geometry_msgs::Twist());
-cmd->angular.z = -0.1;
-cmdpub_.publish(cmd);
-}*/
-ROS_INFO_THROTTLE(1, "obstacle bypassed");
-}
-else if(!face_found){
-ROS_INFO_THROTTLE(1, "no color blob found, searching...");
-	/*geometry_msgs::TwistPtr cmd(new geometry_msgs::Twist());
-	    cmd->angular.z = 1;
-        cmdpub_.publish(cmd);*/
-}
-    else
-    {
-      ROS_INFO_THROTTLE(1, "Not enough points(%d) detected, stopping the robot", n);
-      publishMarker(x, y, z);
-
-      if (enabled_)
-      {
-        cmdpub_.publish(geometry_msgs::TwistPtr(new geometry_msgs::Twist()));
-      }
-    }
-
-    publishBbox();
+    if(n>4000){obstacle_detected = true;
+               ROS_INFO_THROTTLE(1, "OBSTACLE DETECTED\n");
+              }else{obstacle_detected=false;
+                 ROS_INFO_THROTTLE(1, "OBSTACLE NOT DETECTED\n");
+              }
   }
 
-  bool changeModeSrvCb(turtlebot_msgs::SetFollowState::Request& request,
-                       turtlebot_msgs::SetFollowState::Response& response)
+void keyboardCallback(const keyboard::Key key){
+          if(key.code == 32){
+            ROS_INFO_THROTTLE(1, "KEY PRESSED\n");
+          }
+  }
+
+
+
+virtual void onInit()
   {
-    if ((enabled_ == true) && (request.state == request.STOPPED))
-    {
-      ROS_INFO("Change mode service request: following stopped");
-      cmdpub_.publish(geometry_msgs::TwistPtr(new geometry_msgs::Twist()));
-      enabled_ = false;
-    }
-    else if ((enabled_ == false) && (request.state == request.FOLLOW))
-    {
-      ROS_INFO("Change mode service request: following (re)started");
-      enabled_ = true;
-    }
+    ros::NodeHandle& nh = getNodeHandle();
+    ros::NodeHandle& private_nh = getPrivateNodeHandle();
 
-    response.result = response.OK;
-    return true;
+    private_nh.getParam("min_y", min_y_);
+    private_nh.getParam("max_y", max_y_);
+    private_nh.getParam("min_x", min_x_);
+    private_nh.getParam("max_x", max_x_);
+    private_nh.getParam("max_z", max_z_);
+    private_nh.getParam("goal_z", goal_z_);
+    private_nh.getParam("z_scale", z_scale_);
+    private_nh.getParam("x_scale", x_scale_);
+    private_nh.getParam("enabled", enabled_);
+
+    cmdpub_ = private_nh.advertise<geometry_msgs::Twist> ("cmd_vel", 1);
+
+    sub_= nh.subscribe<sensor_msgs::Image>("depth/image_rect", 1, &TurtlebotFollower::updateObstacle, this);
+
+    facesSubscriber = nh.subscribe("/person_detection/faces", 100,  &TurtlebotFollower::personDetectionCallBack, this);
+
+    keyboardSub = nh.subscribe("/keyboard/keydown", 100,  &TurtlebotFollower::keyboardCallback, this);
+
+    //stateSub = nh.subscribe("/person_detection/faces", 100,  &TurtlebotFollower::updateState, this);
+
+
+
+    config_srv_ = new dynamic_reconfigure::Server<turtlebot_follower::FollowerConfig>(private_nh);
+    dynamic_reconfigure::Server<turtlebot_follower::FollowerConfig>::CallbackType f =
+        boost::bind(&TurtlebotFollower::reconfigure, this, _1, _2);
+    config_srv_->setCallback(f);
+
+
+
+    
+
   }
 
-  void publishMarker(double x,double y,double z)
+  void reconfigure(turtlebot_follower::FollowerConfig &config, uint32_t level)
   {
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "/camera_rgb_optical_frame";
-    marker.header.stamp = ros::Time();
-    marker.ns = "my_namespace";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = x;
-    marker.pose.position.y = y;
-    marker.pose.position.z = z;
-    marker.pose.orientation.x = 0.0;
-    marker.pose.orientation.y = 0.0;
-    marker.pose.orientation.z = 0.0;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.2;
-    marker.scale.y = 0.2;
-    marker.scale.z = 0.2;
-    marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-    //only if using a MESH_RESOURCE marker type:
-    markerpub_.publish( marker );
+    min_y_ = config.min_y;
+    max_y_ = config.max_y;
+    min_x_ = config.min_x;
+    max_x_ = config.max_x;
+    max_z_ = config.max_z;
+    goal_z_ = config.goal_z;
+    z_scale_ = config.z_scale;
+    x_scale_ = config.x_scale;
   }
 
-  void publishBbox()
-  {
-    double x = (min_x_ + max_x_)/2;
-    double y = (min_y_ + max_y_)/2;
-    double z = (0 + max_z_)/2;
-
-    double scale_x = (max_x_ - x)*2;
-    double scale_y = (max_y_ - y)*2;
-    double scale_z = (max_z_ - z)*2;
-
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "/camera_rgb_optical_frame";
-    marker.header.stamp = ros::Time();
-    marker.ns = "my_namespace";
-    marker.id = 1;
-    marker.type = visualization_msgs::Marker::CUBE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = x;
-    marker.pose.position.y = -y;
-    marker.pose.position.z = z;
-    marker.pose.orientation.x = 0.0;
-    marker.pose.orientation.y = 0.0;
-    marker.pose.orientation.z = 0.0;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = scale_x;
-    marker.scale.y = scale_y;
-    marker.scale.z = scale_z;
-    marker.color.a = 0.5;
-    marker.color.r = 0.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0.0;
-    //only if using a MESH_RESOURCE marker type:
-    bboxpub_.publish( marker );
-  }
 
   ros::Subscriber sub_;
   ros::Publisher cmdpub_;
@@ -398,6 +296,8 @@ ROS_INFO_THROTTLE(1, "no color blob found, searching...");
   ros::Publisher bboxpub_;
   ros::Subscriber blobsSubscriber;
   ros::Subscriber facesSubscriber;
+  ros::Subscriber keyboardSub;
+  ros::Subscriber stateSub;
 };
 
 PLUGINLIB_DECLARE_CLASS(turtlebot_follower, TurtlebotFollower, turtlebot_follower::TurtlebotFollower, nodelet::Nodelet);

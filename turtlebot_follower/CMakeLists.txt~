@@ -27,6 +27,11 @@ include_directories(
 ## Declare a cpp library
 add_library(${PROJECT_NAME} src/fsm.cpp)
 
+add_executable(
+	follower
+	src/fsm.cpp
+)
+
 add_dependencies(${PROJECT_NAME}
   ${catkin_EXPORTED_TARGETS}
   ${PROJECT_NAME}_gencfg

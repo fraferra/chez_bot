@@ -42,7 +42,7 @@
 #include "hog_haar_person_detection/Faces.h"
 #include "hog_haar_person_detection/BoundingBox.h"
 #include <depth_image_proc/depth_traits.h>
-
+#include "keyboard/Key.h"
 
 namespace turtlebot_follower
 {
@@ -155,32 +155,12 @@ void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
 }
 
 
-/*void blobsCallBack (const cmvision::Blobs& blobsIn)
-{
+void keyboardCallback(const keyboard::Keyboard key){
+          if(key.code == 32){
+            ROS_INFO_THROTTLE(1, "KEY PRESSED\n");
+          }
 
-x_yellow = 0;
-y_yellow = 0;
-int count = 0;
-for (int i = 0; i < blobsIn.blob_count; i++)
-{
-if (blobsIn.blobs[i].red == 201 && blobsIn.blobs[i].green == 148 && blobsIn.blobs[i].blue == 22)
-{
-	x_yellow = x_yellow + blobsIn.blobs[i].x;
-	y_yellow = y_yellow + blobsIn.blobs[i].y;
-	count = count + 1;
 }
-}
-if(count!= 0){
-	color_found = true;
-	x_yellow = (x_yellow/count - 320)/640;
-	y_yellow = (y_yellow/count-320)/640;
-ROS_INFO_THROTTLE(1, "%f %f \n",x_yellow,y_yellow);
-}
-else{
-color_found = false;
-ROS_INFO_THROTTLE(1, "NO BLOBS FOUND:\n");
-}
-}*/
 
 
   virtual void onInit()
@@ -205,6 +185,8 @@ ROS_INFO_THROTTLE(1, "NO BLOBS FOUND:\n");
     //blobsSubscriber = nh.subscribe("/blobs", 100,  &TurtlebotFollower::blobsCallBack, this);
     facesSubscriber = nh.subscribe("/person_detection/faces", 100,  &TurtlebotFollower::personDetectionCallBack, this);
     switch_srv_ = private_nh.advertiseService("change_state", &TurtlebotFollower::changeModeSrvCb, this);
+
+    keyboardSub = nh.subscribe("/keyboard/keydown", 100,  &TurtlebotFollower::keyboardCallback, this);
 
     config_srv_ = new dynamic_reconfigure::Server<turtlebot_follower::FollowerConfig>(private_nh);
     dynamic_reconfigure::Server<turtlebot_follower::FollowerConfig>::CallbackType f =
@@ -437,6 +419,7 @@ ROS_INFO_THROTTLE(1, "no color blob found, searching...");
   ros::Publisher bboxpub_;
   ros::Subscriber blobsSubscriber;
   ros::Subscriber facesSubscriber;
+  ros::Subscriber keyboardSub;
 };
 
 PLUGINLIB_DECLARE_CLASS(turtlebot_follower, TurtlebotFollower, turtlebot_follower::TurtlebotFollower, nodelet::Nodelet);
