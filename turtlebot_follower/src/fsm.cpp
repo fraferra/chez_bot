@@ -110,34 +110,58 @@ private:
 
  // UPDATE STATE 
 void updateState(){
-  if(face_found == false && obstacle_detected == false && is_close_to_human==false){STATE = 0;}
+  if(face_found == false && obstacle_detected == false && is_close_to_human==false){
+    STATE = 0;
+    TurtlebotFollower::searchMode();
+  }
 
-  else if(obstacle_detected == true && is_close_to_human==false){STATE = 1;}
+  else if(obstacle_detected == true && is_close_to_human==false){
+    STATE = 1;
+    TurtlebotFollower::avoidObstacle();
+  }
 
-  else if(face_found == true && obstacle_detected == false && is_close_to_human==false){STATE = 2;}
+  else if(face_found == true && obstacle_detected == false && is_close_to_human==false){
+    STATE = 2;
+    TurtlebotFollower::moveToHuman();
+  }
 
   else if(face_found == true && is_close_to_human==true){
     STATE = 3;
     TurtlebotFollower::engageWithHuman();
   }
 
-  else{STATE=0;}
+  else{STATE=0; TurtlebotFollower::searchMode();}
 
   ROS_INFO_THROTTLE(1, "STATE IS: %d\n", STATE);
 
 
 }
 
+void searchMode(){
+  geometry_msgs::TwistPtr cmd2(new geometry_msgs::Twist());
+  cmd2->linear.x = 0.3;
+  cmdpub_.publish(cmd2);
+}
 
 void engageWithHuman(){
   system("espeak -v en 'HI, I AM CHEZ BOT. HOW ARE YOU?'");
-  system("espeak -v en 'WOULD YOU LIKE A CANDY? IF SO PRESS MY SPACEBAR'");
+  //system("espeak -v en 'WOULD YOU LIKE A CANDY? IF SO PRESS MY SPACEBAR'");
 };
 
 
-void avoidObstacle(){};
+void avoidObstacle(){
+  geometry_msgs::TwistPtr cmd2(new geometry_msgs::Twist());
+  cmd2->linear.x = -1.0;
+  cmdpub_.publish(cmd2);
+};
 
-void moveToHuman(){};
+void moveToHuman(){
+        ROS_INFO_THROTTLE("GO TO HUMAN\n");
+        geometry_msgs::TwistPtr cmd(new geometry_msgs::Twist());
+        cmd->linear.x = 0.2;//(z - goal_z_) * z_scale_;
+        cmd->angular.z = -x_face * z_scale_;
+        cmdpub_.publish(cmd);
+};
 
 // UPDATE FACE DETECTION
 void personDetectionCallBack(const hog_haar_person_detection::Faces facelist)
